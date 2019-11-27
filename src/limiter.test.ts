@@ -1,4 +1,4 @@
-import Limiter from "./limiter";
+import { Limiter } from "./limiter";
 
 describe("Limiter#constructor", () => {
   it("throws RangeError when count isn’t positive", () => {

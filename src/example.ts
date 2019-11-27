@@ -5,7 +5,7 @@ import { Console } from "console";
 import express = require("express");
 import morgan = require("morgan");
 
-import middleware from "./middleware";
+import { middleware } from "./middleware";
 
 const app = express();
 app.use(middleware(100, 3600_000_000_000n), morgan("combined"));

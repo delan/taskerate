@@ -1,4 +1,4 @@
-export default class Limiter {
+export class Limiter {
   store: Store;
 
   /// Maximum number of timestamps within the window for the given key.

@@ -1,8 +1,8 @@
 import { RequestHandler } from "express";
 
-import Limiter from "./limiter";
+import { Limiter } from "./limiter";
 
-export default function middleware(
+export function middleware(
   count: number,
   window: bigint,
 ): RequestHandler {
