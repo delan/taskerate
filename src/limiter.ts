@@ -1,5 +1,5 @@
 export default class Limiter {
-  store: Map<string, bigint[]> = new Map();
+  store: Store;
 
   /// Maximum number of timestamps within the window for the given key.
   count: number;
@@ -8,10 +8,11 @@ export default class Limiter {
   window: bigint;
 
   /// @throws RangeError unless count and window are both positive
-  constructor(count: number, window: bigint) {
+  constructor(count: number, window: bigint, store?: Store) {
     if (count <= 0 || window <= 0n) {
       throw new RangeError();
     }
+    this.store = store != null ? store : new InternalStore(count);
     this.count = count;
     this.window = window;
   }
@@ -22,27 +23,78 @@ export default class Limiter {
   /// @returns retry delay (nanoseconds), or null if it wouldn’t be exceeded
   /// @throws RangeError when $now is less than $key’s most recent timestamp
   delay(key: string, now: bigint): bigint | null {
-    if (!this.store.has(key)) {
-      this.store.set(key, []);
-    }
+    const newest = this.store.newest(key);
 
-    const times = this.store.get(key)!;
-
-    if (times.length > 0 && now < times[times.length - 1]) {
+    if (newest != null && now < newest) {
       throw new RangeError();
     }
 
-    if (times.length >= this.count) {
-      const delta = now - times[0];
+    if (this.store.count(key) >= this.count) {
+      const delta = now - this.store.oldest(key)!;
 
       if (delta < this.window) {
         return this.window - delta;
       }
     }
 
-    times.push(now);
-    times.splice(0, times.length - this.count);
+    this.store.record(key, now);
 
     return null;
+  }
+}
+
+export interface Store {
+  /// Returns the oldest timestamp for the given key (if any).
+  oldest(key: string): bigint | null;
+
+  /// Returns the newest timestamp for the given key (if any).
+  newest(key: string): bigint | null;
+
+  /// Returns the number of timestamps recorded against the given key.
+  count(key: string): number;
+
+  /// Records the given timestamp against the given key.
+  record(key: string, now: bigint): void;
+}
+
+export class InternalStore implements Store {
+  inner: Map<string, bigint[]> = new Map();
+
+  /// Maximum number of timestamps within the window for the given key.
+  limit: number;
+
+  constructor(limit: number) {
+    if (limit <= 0) {
+      throw new RangeError();
+    }
+    this.limit = limit;
+  }
+
+  oldest(key: string) {
+    const times = this._times(key);
+    return times.length > 0 ? times[0] : null;
+  }
+
+  newest(key: string) {
+    const times = this._times(key);
+    const length = times.length;
+    return length > 0 ? times[length - 1] : null;
+  }
+
+  count(key: string) {
+    return this._times(key).length;
+  }
+
+  record(key: string, now: bigint) {
+    const times = this._times(key);
+    times.push(now);
+    times.splice(0, times.length - this.limit);
+  }
+
+  _times(key: string): bigint[] {
+    if (!this.inner.has(key)) {
+      this.inner.set(key, []);
+    }
+    return this.inner.get(key)!;
   }
 }
