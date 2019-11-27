@@ -46,3 +46,32 @@ See [package.json] for unit tests and other options.
 
 
 [package.json]: package.json
+
+
+## Limitations
+
+
+This solution ships with a default implementation where timestamp data
+is stored locally in the middleware instance.
+
+
+I’ve tried to finish the exercise in a reasonable time at the expense
+of some production-readiness, so I’ve used ordinary arrays where ring
+buffers would be better, making some operations O(k) for rate limits
+of k requests when they could be O(1), and I haven’t bothered with any
+kind of bound on timestamp data, which is a denial-of-service risk.
+
+
+If your app is deployed behind a load balancer or on some other highly
+available environment, you should write a custom shared `Store` backed
+by something like [Redis] (see [limiter.d.ts] and [limiter.ts]), then
+override the default store when making your middleware instance:
+
+
+    const store = new MyStore(...);
+    app.use(taskerate.middleware(100, 3600_000_000_000n, store));
+
+
+[Redis]: https://redis.io
+[limiter.d.ts]: dist/limiter.d.ts
+[limiter.ts]: src/limiter.ts
