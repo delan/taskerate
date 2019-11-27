@@ -10,7 +10,7 @@
     "@types/node": "12.12.14",
     "express": "4.17.1",
     "jest": "24.9.0",
-    "morgan": "1.7.0",
+    "morgan": "1.9.1",
     "prettier": "1.19.1",
     "ts-jest": "24.2.0",
     "ts-node-dev": "1.0.0-pre.44",
